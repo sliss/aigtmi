@@ -1,0 +1,29 @@
+{
+  "name": "aigtmi",
+  "version": "1.0.0",
+  "description": "Calculate a startup's odds of success from its description.",
+  "main": "server.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "test",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sliss/aigtmi.git"
+  },
+  "author": "Steven Liss",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/sliss/aigtmi/issues"
+  },
+  "homepage": "https://github.com/sliss/aigtmi#readme",
+  "dependencies": {
+    "axios": "^1.7.7",
+    "csv-writer": "^1.6.0",
+    "dotenv": "^16.4.5",
+    "mongoose": "^8.6.0"
+  }
+}
