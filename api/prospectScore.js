@@ -1,5 +1,26 @@
 const Company = require('../db/company');
+const mongoose = require('mongoose');
 const { createEmbeddings } = require('../integrations/nomic');
+
+const MONGODB_OPTIONS = {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+  serverSelectionTimeoutMS: 25000,
+  socketTimeoutMS: 45000,
+};
+
+async function connectToMongoDB() {
+  try {
+    console.log('Connecting to MongoDB');
+    console.log('MONGODB_CONNECTION_STRING', process.env.MONGODB_CONNECTION_STRING);
+    const connection = await mongoose.connect(process.env.MONGODB_CONNECTION_STRING, MONGODB_OPTIONS);
+    console.log('Connected to MongoDB');
+    return connection;
+  } catch (error) {
+    console.error('Failed to connect to MongoDB:', error);
+    throw error;
+  }
+}
 
 async function calculateProspectScore(description) {
   // Generate embedding for the input description
@@ -94,3 +115,27 @@ async function calculateProspectScore(description) {
 }
 
 module.exports = { calculateProspectScore };
+module.exports = async (req, res) => {
+  console.log('Received request to calculate prospect score');
+  let connection;
+  if (req.method === 'POST') {
+    try {
+      console.log('Connecting to MongoDB');
+      connection = await connectToMongoDB();
+      console.log('MongoDB connected');
+
+      const { description } = req.body;
+      console.log('Received description:', description);
+      console.log('Calculating prospect score');
+      const result = await calculateProspectScore(description);
+      console.log('Prospect score calculated:', result);
+
+      res.json(result);
+    } catch (error) {
+      console.error('Error calculating prospect score:', error);
+      res.status(500).json({ error: 'An error occurred while calculating the prospect score', details: error.message });
+    }
+  } else {
+    res.status(405).json({ error: 'Method not allowed' });
+  }
+};

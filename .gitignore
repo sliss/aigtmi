@@ -1,3 +1,4 @@
 .env
 node_modules
 exports/companies_with_prospect_scores.csv
+.vercel

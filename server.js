@@ -7,7 +7,6 @@ const { calculateProspectScore } = require('./api/prospectScore');
 dotenv.config();
 
 const app = express();
-const port = process.env.PORT || 3000;
 
 // Middleware
 app.use(express.json());
@@ -22,8 +21,8 @@ mongoose.connect(process.env.MONGODB_CONNECTION_STRING, {
   .catch((err) => console.error('Error connecting to MongoDB:', err));
 
 // Routes
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'OK' });
 });
 
 app.post('/api/calculate-prospect', async (req, res) => {
@@ -37,7 +36,5 @@ app.post('/api/calculate-prospect', async (req, res) => {
   }
 });
 
-// Start the server
-app.listen(port, () => {
-  console.log(`Server is running on port ${port}`);
-});
+// Export the Express app
+module.exports = app;
