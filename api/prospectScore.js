@@ -1,6 +1,8 @@
-const Company = require('../db/company');
 const mongoose = require('mongoose');
 const { createEmbeddings } = require('../integrations/nomic');
+const OpenAI = require('openai');
+const Company = require('../db/company');
+require('dotenv').config();
 
 const MONGODB_OPTIONS = {
   useNewUrlParser: true,
@@ -11,13 +13,40 @@ const MONGODB_OPTIONS = {
 
 async function connectToMongoDB() {
   try {
-    console.log('Connecting to MongoDB');
-    console.log('MONGODB_CONNECTION_STRING', process.env.MONGODB_CONNECTION_STRING);
-    const connection = await mongoose.connect(process.env.MONGODB_CONNECTION_STRING, MONGODB_OPTIONS);
-    console.log('Connected to MongoDB');
-    return connection;
+    if (mongoose.connection.readyState === 0) {
+      console.log('Connecting to MongoDB');
+      await mongoose.connect(process.env.MONGODB_CONNECTION_STRING, MONGODB_OPTIONS);
+      console.log('Connected to MongoDB');
+    }
   } catch (error) {
     console.error('Failed to connect to MongoDB:', error);
+    throw error;
+  }
+}
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+async function generateOneLiner(description) {
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: "You are a helpful assistant that generates one-liner summaries for startup descriptions."
+        },
+        {
+          role: "user",
+          content: `Generate a one-liner summary (max 50 characters) for the following startup description:\n\n${description}`
+        }
+      ],
+      max_tokens: 50,
+    });
+    return response.choices[0].message.content.trim();
+  } catch (error) {
+    console.error('Error generating one-liner:', error);
     throw error;
   }
 }
@@ -104,28 +133,32 @@ async function calculateProspectScore(description) {
   console.log(`Neighbor IPOs: ${numNeighborIPOs}`);
   console.log(`Neighbor Failures: ${numNeighborFailures}`);
 
+  // Generate one-liner summary
+  const oneLiner = await generateOneLiner(description);
+  console.log(`Generated one-liner: ${oneLiner}`);
+
   return {
     prospectScore,
     prospectPercentile: userPercentile,
     neighbors,
     numNeighborAcquisitions,
     numNeighborIPOs,
-    numNeighborFailures
+    numNeighborFailures,
+    oneLiner
   };
 }
 
-module.exports = { calculateProspectScore };
 module.exports = async (req, res) => {
   console.log('Received request to calculate prospect score');
-  let connection;
   if (req.method === 'POST') {
     try {
       console.log('Connecting to MongoDB');
-      connection = await connectToMongoDB();
+      await connectToMongoDB();
       console.log('MongoDB connected');
 
       const { description } = req.body;
       console.log('Received description:', description);
+
       console.log('Calculating prospect score');
       const result = await calculateProspectScore(description);
       console.log('Prospect score calculated:', result);

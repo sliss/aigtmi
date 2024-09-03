@@ -192,13 +192,26 @@
 </head>
 
 <body>
-  <h1>Startup Prospect Score Calculator</h1>
+  <h1>Y Comparator</h1>
   <h3>Match a startup description to the 50 most similar YC companies and see how they did for comparison.</h3>
   <textarea id="description" placeholder="Enter your startup description here..."></textarea>
   <button onclick="calculateProspect()">Tell me the odds</button>
+  <button onclick="feelingLucky()">Inspire me</button>
   <div id="results"></div>
 
   <script>
+    const exampleDescriptions = [
+      "Uber for houseplants - On-demand plant watering and care",
+      "AirBnB for parking spots - Rent out your driveway by the hour",
+      "10 minute grocery delivery for dogs - Ultra-fast kibble and treats to your door",
+      "Tinder for old furniture - Swipe right to upcycle vintage pieces",
+      "Blockchain-powered toothbrushes - Earn crypto while you brush",
+      "AI-driven fortune cookies - Personalized fortunes using machine learning",
+      "Uber for naps - Self-driving sleeping pods for intercity travel",
+      "Instagram for smells - Share and experience scents socially",
+      "Cloud-based rock storage - Secure digital backups of your pet rock collection"
+    ];
+
     function getPercentileEmoji(percentile) {
       if (percentile >= 90) return '🤑'; // Money-mouth face
       if (percentile >= 80) return '😎'; // Smiling face with sunglasses
@@ -254,7 +267,7 @@
               </div>
             </div>
             <div class="tweet-preview-content">
-              My startup's idea ranked (${data.prospectPercentile.toFixed(2)}% percentile among YC startups ${percentileEmoji}. See if your startup's going to make it at <span class="tweet-preview-link">yourdomain.com</span>
+              My startup's idea (${data.oneLiner}) ranked ${data.prospectPercentile.toFixed(2)}% percentile among YC startups ${percentileEmoji}. See if your startup's going to make it at <span class="tweet-preview-link">yourdomain.com</span>
             </div>
           </div>
           <button class="share-button" onclick="shareOnTwitter()">Share on Twitter</button>
@@ -373,6 +386,13 @@
       const tweetContent = document.querySelector('.tweet-preview-content').textContent;
       const encodedTweet = encodeURIComponent(tweetContent);
       window.open(`https://twitter.com/intent/tweet?text=${encodedTweet}`, '_blank');
+    }
+
+    function feelingLucky() {
+      const randomIndex = Math.floor(Math.random() * exampleDescriptions.length);
+      const randomDescription = exampleDescriptions[randomIndex];
+      document.getElementById('description').value = randomDescription;
+      calculateProspect();
     }
   </script>
 </body>
