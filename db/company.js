@@ -16,6 +16,7 @@ const companySchema = new mongoose.Schema({
   stage: String,
   isYCCompany: Boolean,
   prospectScore: Number,
+  prospectPercentile: Number,
   // total outcomes for the neighbors by acquisition, ipo, or failure
   numNeighborAcquisitions: Number,
   numNeighborIPOs: Number,

@@ -9,7 +9,7 @@ async function calculateProspectScore(description) {
   const embeddingVector = Array.isArray(embedding) ? embedding[0] : embedding;
   console.log('Embedding vector:', embeddingVector.slice(0, 5) + '...'); // Log first 5 elements
 
-  // Find 50 nearest neighbors using the new $vectorSearch syntax, limited to YC companies
+  // Find 50 nearest neighbors using the $vectorSearch syntax
   const neighbors = await Company.aggregate([
     {
       $vectorSearch: {
@@ -18,8 +18,6 @@ async function calculateProspectScore(description) {
         queryVector: embeddingVector,
         numCandidates: 100,
         limit: 50,
-        // filter: { isYCCompany: true } // Add this filter to limit to YC companies
-
       }
     },
     {
@@ -29,6 +27,8 @@ async function calculateProspectScore(description) {
         oneLiner: 1,
         status: 1,
         batch: 1,
+        prospectScore: 1,
+        prospectPercentile: 1,
         score: { $meta: "vectorSearchScore" }
       }
     }
@@ -72,13 +72,20 @@ async function calculateProspectScore(description) {
   // Ensure prospectScore is a valid number
   prospectScore = isNaN(prospectScore) ? 0 : prospectScore;
 
+  // Calculate percentile for the user's company
+  const totalCompanies = await Company.countDocuments();
+  const companiesWithLowerScore = await Company.countDocuments({ prospectScore: { $lt: prospectScore } });
+  const userPercentile = (companiesWithLowerScore / totalCompanies) * 100;
+
   console.log(`Calculated prospect score: ${prospectScore}`);
+  console.log(`Calculated percentile: ${userPercentile.toFixed(2)}%`);
   console.log(`Neighbor Acquisitions: ${numNeighborAcquisitions}`);
   console.log(`Neighbor IPOs: ${numNeighborIPOs}`);
   console.log(`Neighbor Failures: ${numNeighborFailures}`);
 
   return {
     prospectScore,
+    prospectPercentile: userPercentile,
     neighbors,
     numNeighborAcquisitions,
     numNeighborIPOs,

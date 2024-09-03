@@ -89,6 +89,7 @@
         let resultsHtml = `
           <h2>Results</h2>
           <p>Prospect Score: ${data.prospectScore.toFixed(2)}</p>
+          <p>Percentile: ${data.prospectPercentile.toFixed(2)}%</p>
           <p>Neighbor Acquisitions: ${data.numNeighborAcquisitions}</p>
           <p>Neighbor IPOs: ${data.numNeighborIPOs}</p>
           <p>Neighbor Failures: ${data.numNeighborFailures}</p>
@@ -98,6 +99,8 @@
               <th>Name</th>
               <th>Description</th>
               <th>Status</th>
+              <th>Prospect Score</th>
+              <th>Percentile</th>
             </tr>
         `;
 
@@ -108,6 +111,8 @@
               <td><a href="${neighbor.website}" target="_blank">${neighbor.name}</a></td>
               <td>${neighbor.oneLiner}</td>
               <td class="${statusClass}">${neighbor.status}</td>
+              <td>${neighbor.prospectScore ? neighbor.prospectScore.toFixed(2) : 'N/A'}</td>
+              <td>${neighbor.prospectPercentile ? neighbor.prospectPercentile.toFixed(2) + '%' : 'N/A'}</td>
             </tr>
           `;
         });

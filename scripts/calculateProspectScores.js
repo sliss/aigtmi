@@ -33,20 +33,20 @@ async function calculateAllProspectScores(maxLimit = Infinity) {
   let connection;
 
   try {
-    // Connect to MongoDB
     connection = await connectToMongoDB();
     console.log('Connected to MongoDB');
 
-    // Find companies without a prospectScore, limited by maxLimit
-    const companies = await Company.find({ prospectScore: { $exists: false } }).limit(maxLimit);
-    console.log(`Found ${companies.length} companies without a prospectScore (max: ${maxLimit})`);
+    const companies = await Company.find({
+      $or: [
+        { prospectScore: { $exists: false } },
+        { prospectScore: 0 }
+      ]
+    }).limit(maxLimit);
+    console.log(`Found ${companies.length} companies to process (max: ${maxLimit})`);
 
     for (const company of companies) {
       try {
         console.log(`Processing company: ${company.name}`);
-        console.log(`Long description length: ${company.longDescription.length}`);
-
-        // Calculate prospect score and neighbor metrics
         const {
           prospectScore,
           neighbors,
@@ -55,14 +55,6 @@ async function calculateAllProspectScores(maxLimit = Infinity) {
           numNeighborFailures
         } = await calculateProspectScore(company.longDescription);
 
-        // Log the calculated scores and metrics
-        console.log(`Calculated prospectScore for ${company.name}: ${prospectScore}`);
-        console.log(`Number of neighbors found: ${neighbors.length}`);
-        console.log(`Neighbor Acquisitions: ${numNeighborAcquisitions}`);
-        console.log(`Neighbor IPOs: ${numNeighborIPOs}`);
-        console.log(`Neighbor Failures: ${numNeighborFailures}`);
-
-        // Update company with new prospectScore and neighbor metrics
         await Company.findByIdAndUpdate(company._id, {
           prospectScore,
           numNeighborAcquisitions,
@@ -72,14 +64,12 @@ async function calculateAllProspectScores(maxLimit = Infinity) {
         console.log(`Updated prospectScore and neighbor metrics for ${company.name}`);
       } catch (error) {
         console.error(`Error calculating prospectScore for ${company.name}:`, error);
-        // If there's an error, set default values
         await Company.findByIdAndUpdate(company._id, {
           prospectScore: 0,
           numNeighborAcquisitions: 0,
           numNeighborIPOs: 0,
           numNeighborFailures: 0
         });
-        console.log(`Set default values for ${company.name} due to error`);
       }
     }
 
@@ -87,7 +77,77 @@ async function calculateAllProspectScores(maxLimit = Infinity) {
   } catch (error) {
     console.error('Error:', error);
   } finally {
-    // Close the MongoDB connection
+    if (connection) {
+      await mongoose.disconnect();
+      console.log('Disconnected from MongoDB');
+    }
+  }
+}
+
+async function calculateAllPercentiles() {
+  console.log('Calculating percentiles...');
+  let connection;
+
+  try {
+    connection = await connectToMongoDB();
+    console.log('Connected to MongoDB');
+
+    const totalCompanies = await Company.countDocuments();
+    console.log(`Total companies: ${totalCompanies}`);
+
+    const batchSize = 1000;
+    let processedCount = 0;
+
+    // First, rank all companies by prospect score
+    await Company.aggregate([
+      { $sort: { prospectScore: 1 } },
+      {
+        $group: {
+          _id: null,
+          companies: { $push: { _id: "$_id", prospectScore: "$prospectScore" } }
+        }
+      },
+      { $unwind: { path: "$companies", includeArrayIndex: "rank" } },
+      {
+        $project: {
+          _id: "$companies._id",
+          prospectScore: "$companies.prospectScore",
+          rank: 1
+        }
+      },
+      { $out: "rankedCompanies" }
+    ]).allowDiskUse(true);
+
+    console.log('Companies ranked');
+
+    // Now update percentiles in batches
+    while (processedCount < totalCompanies) {
+      const rankedCompanies = await mongoose.connection.db.collection('rankedCompanies')
+        .find()
+        .skip(processedCount)
+        .limit(batchSize)
+        .toArray();
+
+      const bulkOps = rankedCompanies.map(company => ({
+        updateOne: {
+          filter: { _id: company._id },
+          update: { $set: { prospectPercentile: (company.rank / (totalCompanies - 1)) * 100 } }
+        }
+      }));
+
+      await Company.bulkWrite(bulkOps);
+
+      processedCount += rankedCompanies.length;
+      console.log(`Processed ${processedCount}/${totalCompanies} companies`);
+    }
+
+    // Clean up the temporary collection
+    await mongoose.connection.db.dropCollection('rankedCompanies');
+
+    console.log('Finished calculating percentiles');
+  } catch (error) {
+    console.error('Error calculating percentiles:', error);
+  } finally {
     if (connection) {
       await mongoose.disconnect();
       console.log('Disconnected from MongoDB');
@@ -97,9 +157,23 @@ async function calculateAllProspectScores(maxLimit = Infinity) {
 
 // Run command
 if (require.main === module) {
-  const maxLimit = process.argv[2] ? parseInt(process.argv[2], 10) : Infinity;
-  calculateAllProspectScores(maxLimit).catch(console.error);
+  const args = process.argv.slice(2);
+  const command = args[0];
+  const maxLimit = args[1] ? parseInt(args[1], 10) : Infinity;
+
+  if (command === 'scores') {
+    calculateAllProspectScores(maxLimit).catch(console.error);
+  } else if (command === 'percentiles') {
+    calculateAllPercentiles().catch(console.error);
+  } else if (command === 'all') {
+    (async () => {
+      await calculateAllProspectScores(maxLimit);
+      await calculateAllPercentiles();
+    })().catch(console.error);
+  } else {
+    console.log('Usage: node calculateProspectScores.js [scores|percentiles|all] [maxLimit]');
+  }
 }
 
-module.exports = calculateAllProspectScores;
+module.exports = { calculateAllProspectScores, calculateAllPercentiles };
 

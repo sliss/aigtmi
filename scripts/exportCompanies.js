@@ -5,7 +5,6 @@ const mongoose = require('mongoose');
 const Company = require('../db/company');
 require('dotenv').config();
 
-
 // MongoDB connection setup
 const MONGODB_OPTIONS = {
   useNewUrlParser: true,
@@ -16,7 +15,7 @@ const MONGODB_OPTIONS = {
 
 async function connectToMongoDB() {
   try {
-    console.log('Connecting to MongoDB');
+    console.log('Connecting to MongoDB', process.env.MONGODB_CONNECTION_STRING);
     const connection = await mongoose.connect(process.env.MONGODB_CONNECTION_STRING, MONGODB_OPTIONS);
     console.log('Connected to MongoDB');
     return connection;
@@ -111,8 +110,10 @@ async function exportCompanies() {
   } catch (error) {
     console.error('Error exporting companies:', error);
   } finally {
-    await connection.disconnect();
-    console.log('Disconnected from MongoDB');
+    if (connection) {
+      await mongoose.disconnect();
+      console.log('Disconnected from MongoDB');
+    }
   }
 }
 
