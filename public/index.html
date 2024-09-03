@@ -7,39 +7,101 @@
   <title>Startup Prospect Score Calculator</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      max-width: 800px;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      max-width: 900px;
       margin: 0 auto;
       padding: 20px;
+      background-color: #f5f8fa;
+      color: #333;
+    }
+
+    h1 {
+      color: #1da1f2;
+      text-align: center;
+      margin-bottom: 30px;
     }
 
     textarea {
       width: 100%;
       height: 100px;
+      padding: 10px;
+      border: 1px solid #ccd6dd;
+      border-radius: 5px;
+      font-size: 16px;
+      resize: vertical;
     }
 
     button {
+      background-color: #1da1f2;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
       margin-top: 10px;
+      transition: background-color 0.3s;
+    }
+
+    button:hover {
+      background-color: #0c85d0;
     }
 
     #results {
-      margin-top: 20px;
+      margin-top: 30px;
+      background-color: white;
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .result-card {
+      background-color: #f7f9fa;
+      border: 1px solid #e1e8ed;
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 20px;
+    }
+
+    .result-title {
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 10px;
+      color: #14171a;
+    }
+
+    .result-value {
+      font-size: 24px;
+      font-weight: bold;
+      color: #1da1f2;
+    }
+
+    .result-emoji {
+      font-size: 32px;
+      margin-left: 10px;
     }
 
     table {
       width: 100%;
       border-collapse: collapse;
+      margin-top: 20px;
     }
 
     th,
     td {
-      border: 1px solid #ddd;
-      padding: 8px;
+      border: 1px solid #e1e8ed;
+      padding: 12px;
       text-align: left;
     }
 
     th {
-      background-color: #f2f2f2;
+      background-color: #f5f8fa;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    th:hover {
+      background-color: #e1e8ed;
     }
 
     .status-active {
@@ -60,6 +122,72 @@
       background-color: #e57373;
       color: white;
     }
+
+    .sort-asc::after {
+      content: " ▲";
+    }
+
+    .sort-desc::after {
+      content: " ▼";
+    }
+
+    .share-button {
+      background-color: #1DA1F2;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+      margin-top: 20px;
+      transition: background-color 0.3s;
+    }
+
+    .share-button:hover {
+      background-color: #0c85d0;
+    }
+
+    .tweet-preview {
+      border: 1px solid #e1e8ed;
+      border-radius: 12px;
+      padding: 12px;
+      margin-top: 20px;
+      max-width: 500px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: white;
+    }
+
+    .tweet-preview-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .tweet-preview-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      margin-right: 10px;
+    }
+
+    .tweet-preview-name {
+      font-weight: bold;
+    }
+
+    .tweet-preview-username {
+      color: #657786;
+    }
+
+    .tweet-preview-content {
+      font-size: 16px;
+      line-height: 1.4;
+      margin-bottom: 10px;
+    }
+
+    .tweet-preview-link {
+      color: #1da1f2;
+      text-decoration: none;
+    }
   </style>
 </head>
 
@@ -70,6 +198,19 @@
   <div id="results"></div>
 
   <script>
+    function getPercentileEmoji(percentile) {
+      if (percentile >= 90) return '🤑'; // Money-mouth face
+      if (percentile >= 80) return '😎'; // Smiling face with sunglasses
+      if (percentile >= 70) return '😄'; // Grinning face with smiling eyes
+      if (percentile >= 60) return '🙂'; // Slightly smiling face
+      if (percentile >= 50) return '😐'; // Neutral face
+      if (percentile >= 40) return '🤔'; // Thinking face
+      if (percentile >= 30) return '😕'; // Confused face
+      if (percentile >= 20) return '😟'; // Worried face
+      if (percentile >= 10) return '😨'; // Fearful face
+      return '💀'; // Skull
+    }
+
     async function calculateProspect() {
       const description = document.getElementById('description').value;
       const resultsDiv = document.getElementById('results');
@@ -85,29 +226,57 @@
         });
 
         const data = await response.json();
+        const percentileEmoji = getPercentileEmoji(data.prospectPercentile);
 
         let resultsHtml = `
           <h2>Results</h2>
-          <p>Prospect Score: ${data.prospectScore.toFixed(2)}</p>
-          <p>Percentile: ${data.prospectPercentile.toFixed(2)}%</p>
-          <p>Neighbor Acquisitions: ${data.numNeighborAcquisitions}</p>
-          <p>Neighbor IPOs: ${data.numNeighborIPOs}</p>
-          <p>Neighbor Failures: ${data.numNeighborFailures}</p>
+          <div class="result-card">
+            <div class="result-title">Prospect Score</div>
+            <div class="result-value">${data.prospectScore.toFixed(2)}</div>
+          </div>
+          <div class="result-card">
+            <div class="result-title">Percentile</div>
+            <div class="result-value">${data.prospectPercentile.toFixed(2)}% <span class="result-emoji">${percentileEmoji}</span></div>
+          </div>
+          <div class="result-card">
+            <div class="result-title">Neighbor Outcomes</div>
+            <div>Acquisitions: ${data.numNeighborAcquisitions}</div>
+            <div>IPOs: ${data.numNeighborIPOs}</div>
+            <div>Failures: ${data.numNeighborFailures}</div>
+          </div>
+          <div id="tweetPreview" class="tweet-preview">
+            <div class="tweet-preview-header">
+              <img src="https://via.placeholder.com/48" alt="Avatar" class="tweet-preview-avatar">
+              <div>
+                <div class="tweet-preview-name">Your Name</div>
+                <div class="tweet-preview-username">@yourusername</div>
+              </div>
+            </div>
+            <div class="tweet-preview-content">
+              My startup's idea ranked (${data.prospectPercentile.toFixed(2)}% percentile among YC startups ${percentileEmoji}. See if your startup's going to make it at <span class="tweet-preview-link">yourdomain.com</span>
+            </div>
+          </div>
+          <button class="share-button" onclick="shareOnTwitter()">Share on Twitter</button>
           <h3>Nearest Neighbors</h3>
-          <table>
-            <tr>
-              <th>Name</th>
-              <th>Description</th>
-              <th>Status</th>
-              <th>Prospect Score</th>
-              <th>Percentile</th>
-            </tr>
+          <table id="neighborsTable">
+            <thead>
+              <tr>
+                <th onclick="sortTable(0)">Similarity</th>
+                <th onclick="sortTable(1)">Name</th>
+                <th onclick="sortTable(2)">Description</th>
+                <th onclick="sortTable(3)">Status</th>
+                <th onclick="sortTable(4)">Prospect Score</th>
+                <th onclick="sortTable(5)">Percentile</th>
+              </tr>
+            </thead>
+            <tbody>
         `;
 
-        data.neighbors.forEach(neighbor => {
+        data.neighbors.forEach((neighbor, index) => {
           const statusClass = getStatusClass(neighbor.status);
           resultsHtml += `
             <tr>
+              <td>${index + 1}</td>
               <td><a href="${neighbor.website}" target="_blank">${neighbor.name}</a></td>
               <td>${neighbor.oneLiner}</td>
               <td class="${statusClass}">${neighbor.status}</td>
@@ -117,7 +286,7 @@
           `;
         });
 
-        resultsHtml += '</table>';
+        resultsHtml += '</tbody></table>';
         resultsDiv.innerHTML = resultsHtml;
       } catch (error) {
         resultsDiv.innerHTML = 'An error occurred while calculating the prospect score.';
@@ -138,6 +307,71 @@
         default:
           return '';
       }
+    }
+
+    function sortTable(n) {
+      const table = document.getElementById("neighborsTable");
+      let rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;
+      switching = true;
+      dir = "asc";
+
+      while (switching) {
+        switching = false;
+        rows = table.rows;
+
+        for (i = 1; i < (rows.length - 1); i++) {
+          shouldSwitch = false;
+          x = rows[i].getElementsByTagName("TD")[n];
+          y = rows[i + 1].getElementsByTagName("TD")[n];
+
+          let xValue, yValue;
+
+          // Use numerical sorting for similarity, prospect score, and percentile columns
+          if (n === 0 || n === 4 || n === 5) {
+            xValue = parseFloat(x.innerHTML);
+            yValue = parseFloat(y.innerHTML);
+          } else {
+            xValue = x.innerHTML.toLowerCase();
+            yValue = y.innerHTML.toLowerCase();
+          }
+
+          if (dir === "asc") {
+            if (xValue > yValue) {
+              shouldSwitch = true;
+              break;
+            }
+          } else if (dir === "desc") {
+            if (xValue < yValue) {
+              shouldSwitch = true;
+              break;
+            }
+          }
+        }
+
+        if (shouldSwitch) {
+          rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
+          switching = true;
+          switchcount++;
+        } else {
+          if (switchcount === 0 && dir === "asc") {
+            dir = "desc";
+            switching = true;
+          }
+        }
+      }
+
+      // Update sorting indicators
+      const headers = table.getElementsByTagName("TH");
+      for (let i = 0; i < headers.length; i++) {
+        headers[i].classList.remove("sort-asc", "sort-desc");
+      }
+      headers[n].classList.add(dir === "asc" ? "sort-asc" : "sort-desc");
+    }
+
+    function shareOnTwitter() {
+      const tweetContent = document.querySelector('.tweet-preview-content').textContent;
+      const encodedTweet = encodeURIComponent(tweetContent);
+      window.open(`https://twitter.com/intent/tweet?text=${encodedTweet}`, '_blank');
     }
   </script>
 </body>
