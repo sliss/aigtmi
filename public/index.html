@@ -5,6 +5,18 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Y Comparator</title>
+  <meta name="description"
+    content="Match a startup description to the 50 most similar YC companies and see how they did for comparison.">
+  <meta property="og:title" content="Y Comparator">
+  <meta property="og:description"
+    content="Match a startup description to the 50 most similar YC companies and see how they did for comparison.">
+  <meta property="og:image" content="https://i.imgur.com/puKiwSf.png">
+  <meta property="og:url" content="https://ycomparator.stevenliss.com">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Y Comparator">
+  <meta name="twitter:description"
+    content="Match a startup description to the 50 most similar YC companies and see how they did for comparison.">
+  <meta name="twitter:image" content="https://i.imgur.com/puKiwSf.png">
   <style>
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -188,6 +200,61 @@
       color: #1da1f2;
       text-decoration: none;
     }
+
+    /* New styles for the loading image */
+    #loadingImage {
+      display: block;
+      /* Initially visible */
+      text-align: center;
+      margin: 20px 0;
+    }
+
+    #results {
+      display: none;
+      /* Initially hidden */
+      margin-top: 30px;
+      background-color: white;
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    /* New styles for the tweet preview */
+    .tweet-preview {
+      border: 1px solid #e1e8ed;
+      border-radius: 12px;
+      padding: 12px;
+      margin-top: 20px;
+      max-width: 500px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: white;
+    }
+
+    #loadingSpinner {
+      display: none;
+      text-align: center;
+      margin: 20px 0;
+    }
+
+    .spinner {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #1da1f2;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto;
+    }
+
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
+    }
   </style>
 </head>
 
@@ -197,6 +264,16 @@
   <textarea id="description" placeholder="Enter your startup description here..."></textarea>
   <button onclick="calculateProspect()">Tell me the odds</button>
   <button onclick="feelingLucky()">Inspire me</button>
+  <div id="loadingImage">
+    <h3>Explore the dataset</h3>
+    <a href="https://atlas.nomic.ai/data/openads/yc-all-companies-to-s24/map/7c6808b6-2460-47aa-a260-8957b0690037">
+      <img src="https://i.imgur.com/puKiwSf.png" alt="Loading..." style="width: 100%;" />
+    </a>
+  </div>
+  <div id="loadingSpinner">
+    <div class="spinner"></div>
+    <p>Calculating prospects...</p>
+  </div>
   <div id="results"></div>
 
   <script>
@@ -228,7 +305,12 @@
     async function calculateProspect() {
       const description = document.getElementById('description').value;
       const resultsDiv = document.getElementById('results');
-      resultsDiv.innerHTML = 'Calculating...';
+      const loadingImage = document.getElementById('loadingImage');
+      const loadingSpinner = document.getElementById('loadingSpinner');
+
+      loadingImage.style.display = 'none';
+      loadingSpinner.style.display = 'block';
+      resultsDiv.style.display = 'none';
 
       try {
         const response = await fetch('/api/calculate-prospect', {
@@ -245,12 +327,12 @@
         let resultsHtml = `
           <h2>Results</h2>
           <div class="result-card">
-            <div class="result-title">Prospect Score</div>
-            <div class="result-value">${data.prospectScore.toFixed(2)}</div>
-          </div>
-          <div class="result-card">
             <div class="result-title">Percentile</div>
             <div class="result-value">${data.prospectPercentile.toFixed(2)}% <span class="result-emoji">${percentileEmoji}</span></div>
+          </div>
+          <div class="result-card">
+            <div class="result-title">One-liner Summary</div>
+            <div class="result-value">${data.oneLiner}</div>
           </div>
           <div class="result-card">
             <div class="result-title">Neighbor Outcomes</div>
@@ -267,7 +349,7 @@
               </div>
             </div>
             <div class="tweet-preview-content">
-              My startup's idea (${data.oneLiner}) ranked ${data.prospectPercentile.toFixed(2)}% percentile among YC startups ${percentileEmoji}. See if your startup's going to make it at <span class="tweet-preview-link">yourdomain.com</span>
+              My startup's idea (${data.oneLiner}) ranked ${data.prospectPercentile.toFixed(2)}% percentile among YC startups ${percentileEmoji}. See if your startup's going to make it at <span class="tweet-preview-link">ycomparator.stevenliss.com</span>
             </div>
           </div>
           <button class="share-button" onclick="shareOnTwitter()">Share on Twitter</button>
@@ -301,8 +383,13 @@
         });
 
         resultsHtml += '</tbody></table>';
+
+        loadingSpinner.style.display = 'none';
+        resultsDiv.style.display = 'block';
         resultsDiv.innerHTML = resultsHtml;
       } catch (error) {
+        loadingSpinner.style.display = 'none';
+        resultsDiv.style.display = 'block';
         resultsDiv.innerHTML = 'An error occurred while calculating the prospect score.';
         console.error('Error:', error);
       }
@@ -394,6 +481,13 @@
       document.getElementById('description').value = randomDescription;
       calculateProspect();
     }
+
+    // Show loading image when the page loads
+    window.onload = function() {
+      document.getElementById('loadingImage').style.display = 'block';
+      document.getElementById('loadingSpinner').style.display = 'none';
+      document.getElementById('results').style.display = 'none';
+    };
   </script>
 </body>
 
