@@ -1,9 +1,14 @@
 # Handoff — ycomparator.stevenliss.com
 
-## What was done
+## Current status
 
-- **Fixed DNS**: `ycomparator.stevenliss.com` had no DNS record. Added an A record in Cloudflare pointing to `76.76.21.21` (Vercel). Site is now serving again.
-- **Scraped fresh YC data**: Added `scripts/scrapeYCCompanies.js` which pulls from `https://api.ycombinator.com/v0.1/companies` and appends new companies to the CSV. Added 1,625 new companies (up through S26 batch). CSV is now ~6,100 valid companies with descriptions.
+Site is **loading** but the "Tell me the odds" feature is **broken** (500 error). MongoDB cluster is gone and needs to be rebuilt. Everything else is ready to go.
+
+## What's been done
+
+- **Fixed DNS**: `ycomparator.stevenliss.com` had no A record in Cloudflare. Added one pointing to `76.76.21.21` (Vercel). Site serves again.
+- **Scraped fresh YC data**: Added `scripts/scrapeYCCompanies.js`. Ran it — appended 1,635 new companies (through S26 batch) to the CSV. Dataset now has ~6,100 companies with descriptions.
+- **Git note**: Local `main` has diverged from `origin/main` (1 local commit ahead, 13 behind). Run `git pull --rebase` before doing anything else to reconcile, then push.
 
 ## What's still broken
 
